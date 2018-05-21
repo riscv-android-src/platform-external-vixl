@@ -68,11 +68,18 @@ cc_defaults {
         "-Wunreachable-code",
         "-Wmissing-noreturn",
         "-pedantic",
-        "-std=c++11",
 
         // Explicitly enable the write-strings warning. VIXL uses
         // const correctly when handling string constants.
         "-Wwrite-strings",
+
+        // As we can load both libvixl-arm.so and libvixl-arm64.so in the
+        // same process, and some functions are emitted in both libraries,
+        // flags for selecting implementation details for these functions
+        // must be shared to emit identical code. Otherwise we can get
+        // undefined behavior, especially with link-time optimization.
+        // b/64359573
+        "-DVIXL_CODE_BUFFER_MALLOC",
     ],
     local_include_dirs: ["src"],
     native_coverage: false,
@@ -85,7 +92,6 @@ cc_defaults {
     name: "vixl-arm",
     defaults: ["vixl-common"],
     cppflags: [
-        "-DVIXL_CODE_BUFFER_MALLOC",
         "-DVIXL_INCLUDE_TARGET_T32",
         ],
     srcs: ["src/aarch32/*.cc"],
@@ -96,7 +102,6 @@ cc_defaults {
     defaults: ["vixl-common"],
     cppflags: [
         "-DVIXL_INCLUDE_SIMULATOR_AARCH64",
-        "-DVIXL_CODE_BUFFER_MMAP",
         "-DVIXL_INCLUDE_TARGET_A64",
         ],
     srcs: ["src/aarch64/*.cc"],
@@ -124,10 +129,22 @@ cc_defaults {
 
 cc_library {
     name: "libvixl-arm64",
-    defaults: ["vixl-release", "vixl-arm64"],
+    defaults: [
+        "vixl-release",
+        "vixl-arm64",
+        "dex2oat-pgo-defaults",
+    ],
     vendor_available: true,
     vndk: {
         enabled: true,
+    },
+
+    target: {
+        android: {
+            lto: {
+                 thin: true,
+            },
+        },
     },
 }
 
@@ -138,10 +155,22 @@ cc_library {
 
 cc_library {
     name: "libvixl-arm",
-    defaults: ["vixl-release", "vixl-arm"],
+    defaults: [
+        "vixl-release",
+        "vixl-arm",
+        "dex2oat-pgo-defaults",
+    ],
     vendor_available: true,
     vndk: {
         enabled: true,
+    },
+
+    target: {
+        android: {
+            lto: {
+                 thin: true,
+            },
+        },
     },
 }
 
